@@ -128,6 +128,13 @@ class TelegramService:
     async def set_webhook(self) -> None:
         """Set Telegram webhook to the current public URL."""
         webhook_url = resolve_webhook_url()
+        if self.is_secure_webhook_enabled():
+            secret_token = self.get_secure_webhook_token()
+            if secret_token:
+                await self.bot.set_webhook(url=webhook_url, secret_token=secret_token)
+                return
+            print("Secure webhook enabled but TELEGRAM_WEBHOOK_SECRET is not set.")
+
         await self.bot.set_webhook(url=webhook_url)
 
     async def close(self) -> None:
