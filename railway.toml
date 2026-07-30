@@ -1,0 +1,7 @@
+[build]
+command = "pip install -r requirements.txt"
+
+[deploy]
+startCommand = "python run.py"
+healthcheckPath = "/"
+healthcheckTimeout = 300
