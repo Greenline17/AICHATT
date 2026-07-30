@@ -1,4 +1,5 @@
 import asyncio
+from os import getenv
 from .plugins.weather_plugin import WeatherPlugin
 from .plugins.date_time_plugin import DateTimePlugin
 from google.genai.chats import AsyncChat
@@ -15,20 +16,32 @@ class PluginManager:
 
     def __init__(self):
         self.__date_time_plugin = DateTimePlugin()
-        self.__weather_plugin = WeatherPlugin()
+        self.__weather_plugin = None
+
+        if getenv("OWM_API_KEY"):
+            try:
+                self.__weather_plugin = WeatherPlugin()
+            except ValueError as exc:
+                print(f"Weather plugin disabled: {exc}")
+        else:
+            print("OWM_API_KEY is not set; weather plugin disabled.")
 
     def get_tools(self):
-        return [
-            self.__date_time_plugin.get_tool(),
-            self.__weather_plugin.get_tool()
-        ]
+        tools = [self.__date_time_plugin.get_tool()]
+        if self.__weather_plugin is not None:
+            tools.append(self.__weather_plugin.get_tool())
+        return tools
 
     def get_function_declarations(self):
-        return {
+        declarations = {
             "get_date_time": self.__date_time_plugin.get_date_time,
-            "get_current_weather": self.__weather_plugin.get_current_weather,
-            "get_forecast_weather": self.__weather_plugin.get_forecast_weather
         }
+        if self.__weather_plugin is not None:
+            declarations.update({
+                "get_current_weather": self.__weather_plugin.get_current_weather,
+                "get_forecast_weather": self.__weather_plugin.get_forecast_weather,
+            })
+        return declarations
 
     async def get_function_response(self, function_call: FunctionCall, chat: AsyncChat) -> PartDict | FunctionResponseDict | None:
         function_declarations = self.get_function_declarations()
