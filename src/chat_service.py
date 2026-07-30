@@ -6,9 +6,12 @@ Uses async SQLAlchemy 2.0 for FastAPI compatibility.
 
 from datetime import datetime
 from sqlalchemy import select, delete
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.entities import ChatSession, ChatMessage
+from src.entities.base import Base
+from src.services.database_service import engine
 from .config import Config
 
 
@@ -114,9 +117,16 @@ class ChatService:
         Returns:
             The ChatSession instance.
         """
-        result = await db.execute(
-            select(ChatSession).where(ChatSession.chat_id == chat_id)
-        )
+        try:
+            result = await db.execute(
+                select(ChatSession).where(ChatSession.chat_id == chat_id)
+            )
+        except OperationalError:
+            await self._initialize_database()
+            result = await db.execute(
+                select(ChatSession).where(ChatSession.chat_id == chat_id)
+            )
+
         session = result.scalar_one_or_none()
 
         if not session:
@@ -126,3 +136,7 @@ class ChatService:
             await db.refresh(session)
         
         return session
+
+    async def _initialize_database(self) -> None:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
