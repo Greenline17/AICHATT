@@ -9,11 +9,19 @@ from fastapi import FastAPI
 
 from src.bot_service import BotService
 from src.chat_service import ChatService
+from src.entities.base import Base
 from src.gemini import Gemini
 from src.routes import router
+from src.services.database_service import engine
 from src.services.telegram_service import TelegramService
 
 load_dotenv()
+
+
+async def create_database_tables() -> None:
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    await engine.dispose()
 
 
 def create_app(
@@ -30,6 +38,7 @@ def create_app(
         )
 
         try:
+            await create_database_tables()
             if getattr(telegram_service, "bot", None) is not None:
                 try:
                     await telegram_service.set_webhook()
