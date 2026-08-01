@@ -33,12 +33,47 @@ class OpenAIClient:
 
     async def complete(self, prompt: str, history: list[dict[str, Any]] | None = None) -> str:
         payload = self._build_request_payload(prompt, history)
+        url = f"{self.base_url}/chat/completions"
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                f"{self.base_url}/chat/completions",
-                headers=self._build_headers(),
-                json=payload,
-            )
-            response.raise_for_status()
+            try:
+                response = await client.post(url, headers=self._build_headers(), json=payload)
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                resp = exc.response
+                body = ""
+                try:
+                    body = resp.text
+                except Exception:
+                    body = str(exc)
+
+                # If request failed due to model not available or invalid model, try a safer fallback model once
+                if resp.status_code == 400 and self.model != "gpt-3.5-turbo" and "model" in body.lower():
+                    fallback = "gpt-3.5-turbo"
+                    payload["model"] = fallback
+                    try:
+                        response = await client.post(url, headers=self._build_headers(), json=payload)
+                        response.raise_for_status()
+                    except httpx.HTTPStatusError as exc2:
+                        raise Exception(f"HTTP {exc2.response.status_code}: {exc2.response.text}") from exc2
+                else:
+                    raise Exception(f"HTTP {resp.status_code}: {body}") from exc
+
             data = response.json()
-            return data["choices"][0]["message"]["content"]
+
+            # Support different response shapes
+            choices = data.get("choices") or []
+            if not choices:
+                return str(data)
+
+            choice = choices[0]
+            # new-style: choice["message"]["content"]
+            if isinstance(choice, dict) and "message" in choice and isinstance(choice["message"], dict):
+                content = choice["message"].get("content")
+                if content is not None:
+                    return content
+
+            # older-style: choice["text"]
+            if isinstance(choice, dict) and "text" in choice:
+                return choice["text"]
+
+            return str(data)
