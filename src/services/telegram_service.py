@@ -69,7 +69,7 @@ class TelegramService:
         Args:
             chat_id: The chat ID to send the message to.
         """
-        await self.send_message(chat_id=chat_id, text="Welcome to Gemini Bot. Send me a message or an image to get started.")
+        await self.send_message(chat_id=chat_id, text="Welcome to ChatGPT Bot. Send me a message to get started.")
 
     async def send_unauthorized_message(self, chat_id: int):
         """Send an unauthorized access message to the user.

@@ -1,19 +1,19 @@
 # AICHATT
 
-Telegram bot with Gemini AI, ready for Railway deployment.
+Telegram bot with OpenAI ChatGPT support, ready for Railway deployment.
 
 ## What is included
 - FastAPI app with Telegram webhook support
-- Gemini integration
+- OpenAI ChatGPT integration
 - SQLite database by default
 - Railway deployment configuration
 - Automatic webhook URL resolution for Railway
 
 ## Required Variables
 Set these in Railway:
-- GEMINI_API_KEY
+- OPENAI_API_KEY
 - TELEGRAM_BOT_TOKEN
-- GEMINI_MODEL_NAME (optional, defaults to gemini-flash-latest)
+- OPENAI_MODEL (optional, defaults to gpt-4o-mini)
 - WEBHOOK_URL (optional, auto-detected by Railway if not set)
 - ENABLE_SECURE_WEBHOOK_TOKEN (optional, defaults to True)
 - TELEGRAM_WEBHOOK_SECRET (optional)
